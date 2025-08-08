@@ -103,5 +103,53 @@ namespace HellDivers2DemocracyHub.Controllers
 
             return Ok(dashboard);
         }
+
+        /// <summary>
+        /// Get information about ongoing campaigns
+        /// </summary>
+        [HttpGet("campaigns")]
+        public async Task<ActionResult<List<Campaign>>> GetCampaigns()
+        {
+            _logger.LogInformation("API: Getting campaigns");
+            
+            var campaigns = await _hellDivers2Service.GetCampaignsAsync();
+            return Ok(campaigns);
+        }
+
+        /// <summary>
+        /// Get dispatches (messages from high command)
+        /// </summary>
+        [HttpGet("dispatches")]
+        public async Task<ActionResult<List<Dispatch>>> GetDispatches()
+        {
+            _logger.LogInformation("API: Getting dispatches");
+            
+            var dispatches = await _hellDivers2Service.GetDispatchesAsync();
+            return Ok(dispatches);
+        }
+
+        /// <summary>
+        /// Get Steam news feed for Helldivers 2
+        /// </summary>
+        [HttpGet("steam-news")]
+        public async Task<ActionResult<List<SteamNews>>> GetSteamNews()
+        {
+            _logger.LogInformation("API: Getting Steam news");
+            
+            var steamNews = await _hellDivers2Service.GetSteamNewsAsync();
+            return Ok(steamNews);
+        }
+
+        /// <summary>
+        /// Get information about Democracy Space Stations
+        /// </summary>
+        [HttpGet("space-stations")]
+        public async Task<ActionResult<List<SpaceStation>>> GetSpaceStations()
+        {
+            _logger.LogInformation("API: Getting space stations");
+            
+            var spaceStations = await _hellDivers2Service.GetSpaceStationsAsync();
+            return Ok(spaceStations);
+        }
     }
 }

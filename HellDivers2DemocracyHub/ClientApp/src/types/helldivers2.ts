@@ -72,14 +72,56 @@ export interface Statistics {
   playerCount: number
 }
 
+/**
+ * Represents a Major Order (Assignment) from Super Earth to the Helldivers community.
+ * Maps to the Assignment2 schema from the Helldivers 2 Community API.
+ */
 export interface MajorOrder {
-  id32: number
-  id64: number
-  progress: number
-  expiresIn: string
-  setting: Setting
+  /** The unique identifier of this assignment */
+  id: number
+  /** Progress tracking array with numbers representing completion progress */
+  progress: number[]
+  /** The title of the assignment */
+  title: string
+  /** Long form description with context and story elements */
+  briefing: string
+  /** Short summary of the assignment (can be null) */
+  description: string | null
+  /** List of tasks that need to be completed */
+  tasks: Task2[]
+  /** Primary reward for completion (can be null) */
+  reward: Reward2 | null
+  /** Complete list of all rewards */
+  rewards: Reward2[]
+  /** When the assignment expires */
+  expiration: string
+  /** Assignment flags for special behaviors */
+  flags: number
 }
 
+/**
+ * Represents a task within a Major Order that needs to be completed.
+ */
+export interface Task2 {
+  /** The type of task (different types have different objectives) */
+  type: number
+  /** Numerical values for task requirements or progress */
+  values: number[]
+  /** Identifiers defining what each value represents */
+  valueTypes: number[]
+}
+
+/**
+ * Represents a reward for completing a Major Order.
+ */
+export interface Reward2 {
+  /** Type of reward (1 = Medals, etc.) */
+  type: number
+  /** Amount of the reward to be awarded */
+  amount: number
+}
+
+/** Legacy interface - kept for backward compatibility */
 export interface Setting {
   type: number
   overrideTitle: number
@@ -89,6 +131,7 @@ export interface Setting {
   flags: number[]
 }
 
+/** Legacy interface - kept for backward compatibility */
 export interface TaskDescription {
   type: number
   values: number[]
@@ -101,4 +144,96 @@ export interface DashboardData {
   statistics: Statistics | null
   planets: Planet[]
   lastUpdated: string
+}
+
+/**
+ * Represents an ongoing campaign on a planet
+ */
+export interface Campaign {
+  /** The unique identifier of this Campaign */
+  id: number
+  /** The planet on which this campaign is being fought */
+  planet?: Planet
+  /** The type of campaign */
+  type: number
+  /** Indicates how many campaigns have already been fought on this Planet */
+  count: number
+  /** The faction that is currently fighting this campaign */
+  faction: string
+}
+
+/**
+ * A message from high command to the players, usually updates on the status of the war effort
+ */
+export interface Dispatch {
+  /** The unique identifier of this dispatch */
+  id: number
+  /** When the dispatch was published */
+  published: string
+  /** The type of dispatch */
+  type: number
+  /** The message this dispatch represents */
+  message: string
+}
+
+/**
+ * Represents a new article from Steam's news feed
+ */
+export interface SteamNews {
+  /** The identifier assigned by Steam to this news item */
+  id: string
+  /** The title of the Steam news item */
+  title: string
+  /** The URL to Steam where this news item was posted */
+  url: string
+  /** The author who posted this message on Steam */
+  author: string
+  /** The message posted by Steam */
+  content: string
+  /** When this message was posted */
+  publishedAt: string
+}
+
+/**
+ * Represents a Super Earth Democracy Space Station
+ */
+export interface SpaceStation {
+  /** The unique identifier of the station */
+  id32: number
+  /** The planet it's currently orbiting */
+  planet?: Planet
+  /** When the election for the next planet will end */
+  electionEnd: string
+  /** A set of flags */
+  flags: number
+  /** A list of tactical actions the space station supports */
+  tacticalActions: TacticalAction[]
+}
+
+/**
+ * Represents a tactical action that the Space Station can take
+ */
+export interface TacticalAction {
+  id32: number
+  mediaId32: number
+  name: string
+  description: string
+  strategicDescription: string
+  status: number
+  statusExpire: string
+  costs: Cost[]
+  effectIds: number[]
+}
+
+/**
+ * Represents the "Cost" of a tactical action
+ */
+export interface Cost {
+  id: string
+  itemMixId: number
+  targetValue: number
+  currentValue: number
+  deltaPerSecond: number
+  maxDonationAmmount: number
+  maxDonationPeriodSeconds: number
 }

@@ -1,4 +1,4 @@
-import type { WarStatus, MajorOrder, Statistics, Planet } from '@/types/helldivers2'
+import type { WarStatus, MajorOrder, Statistics, Planet, Dispatch } from '@/types/helldivers2'
 
 const API_BASE = '/api/helldivers2'
 
@@ -13,6 +13,8 @@ export interface DashboardData {
 export class HellDivers2ApiService {
   private static async fetchApi<T>(endpoint: string): Promise<T> {
     const response = await fetch(`${API_BASE}${endpoint}`)
+    console.log('response data');
+    console.log(response);
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} - ${response.statusText}`)
     }
@@ -33,6 +35,10 @@ export class HellDivers2ApiService {
 
   static async getPlanets(): Promise<Planet[]> {
     return this.fetchApi<Planet[]>('/planets')
+  }
+
+  static async getDispatches(): Promise<Dispatch[]> {
+    return this.fetchApi<Dispatch[]>('/dispatches')
   }
 
   static async getDashboard(): Promise<DashboardData> {

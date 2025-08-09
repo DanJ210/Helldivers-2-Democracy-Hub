@@ -4,7 +4,6 @@ import DashboardView from '../components/DashboardView.vue'
 
 <template>
   <main>
-    Testing CI/CD
     <DashboardView />
   </main>
 </template>

@@ -114,9 +114,9 @@ namespace HellDivers2DemocracyHub.Models
         public ulong MissionTime { get; set; }
         
         /// <summary>
-        /// Total Terminid enemies eliminated. API uses "bugKills" property name.
+        /// Total Terminid enemies eliminated. API uses "terminidKills" property name.
         /// </summary>
-        [JsonPropertyName("bugKills")]
+        [JsonPropertyName("terminidKills")]
         public ulong BugKills { get; set; }
         
         public ulong AutomatonKills { get; set; }
@@ -130,9 +130,9 @@ namespace HellDivers2DemocracyHub.Models
         public ulong MissionSuccessRate { get; set; }
         
         /// <summary>
-        /// Average accuracy percentage. Note: API has typo and uses "accurracy".
+        /// Average accuracy percentage. API now uses correct "accuracy" spelling.
         /// </summary>
-        [JsonPropertyName("accurracy")]
+        [JsonPropertyName("accuracy")]
         public ulong Accuracy { get; set; }
         
         public ulong PlayerCount { get; set; }

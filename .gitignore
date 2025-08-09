@@ -3,9 +3,8 @@ deployment/
 
 # Azure deployment credentials and sensitive information
 *.ps1
-*.md
 
-# But keep essential application files
+# Keep essential README files
 !README.md
 !HellDivers2DemocracyHub/README.md
 !HellDivers2DemocracyHub/ClientApp/README.md

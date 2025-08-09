@@ -8,14 +8,38 @@ builder.Services.AddControllersWithViews();
 // Add HTTP client for Helldivers 2 API
 builder.Services.AddHttpClient<IHellDivers2Service, HellDivers2Service>();
 
-// Add CORS policy for development
+// Add health checks
+builder.Services.AddHealthChecks();
+
+// Add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            // In production, configure specific allowed origins
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+            if (allowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            }
+            else
+            {
+                // Default to same origin
+                policy.AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .SetIsOriginAllowed(origin => new Uri(origin).Host == builder.Configuration["WEBSITE_HOSTNAME"]);
+            }
+        }
     });
 });
 
@@ -28,12 +52,27 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Add security headers for production
+if (app.Environment.IsProduction())
+{
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers.Append("X-Frame-Options", "DENY");
+        context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+        context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+        await next();
+    });
+}
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
 // Enable CORS
 app.UseCors();
+
+// Add health check endpoint
+app.MapHealthChecks("/health");
 
 app.MapControllerRoute(
     name: "default",

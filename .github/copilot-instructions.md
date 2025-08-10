@@ -97,6 +97,23 @@ HellDivers2DemocracyHub/               # .NET Core backend
 - `/api/v1/steam` - Steam news integration
 - `/api/v2/space-stations` - Space station information
 
+## Data Models & Interpretation
+
+### Major Order Enhancement System
+The application includes a sophisticated Major Order interpretation system that converts raw API data into user-friendly information:
+
+- **MajorOrderInterpreter Service**: Located in `services/majorOrderInterpreter.ts`
+- **Task Type Recognition**: Automatically identifies liberation vs elimination tasks
+- **Planet Name Resolution**: Maps planet indices to actual planet names
+- **Progress Calculation**: Converts raw progress data into completion percentages
+- **Time Management**: Provides human-readable time remaining with urgency indicators
+
+### Key Constants & Mappings
+- **TASK_TYPES**: Liberation (11), Elimination (3)
+- **VALUE_TYPES**: Target amounts, planet indices, faction IDs, stratagem requirements
+- **REWARD_TYPES**: Medals (1), Super Credits (2), Experience (3), Warbonds (4)
+- **FACTIONS**: Super Earth (0), Terminids (2), Automatons (3), Illuminate (4)
+
 ## Data Models
 
 ### Key Types/Interfaces
@@ -121,10 +138,20 @@ HellDivers2DemocracyHub/               # .NET Core backend
 ### When Adding New Features
 1. **API First**: Design backend endpoints before frontend implementation
 2. **Type Safety**: Define TypeScript interfaces that match C# models
-3. **Error Handling**: Implement proper error boundaries and fallbacks
-4. **Caching**: Consider caching strategy for new data endpoints
-5. **Responsive**: Ensure mobile compatibility for new UI components
-6. **Testing**: Test with Docker containers locally before deployment
+3. **Data Interpretation**: Use the MajorOrderInterpreter pattern for complex data
+4. **Error Handling**: Implement proper error boundaries and fallbacks
+5. **Caching**: Consider caching strategy for new data endpoints
+6. **Responsive**: Ensure mobile compatibility for new UI components
+7. **Testing**: Test with Docker containers locally before deployment
+
+### Major Order Display Enhancement
+The application now features enhanced Major Order display with:
+- **Smart Task Interpretation**: Liberation vs elimination task recognition
+- **Visual Progress Indicators**: Color-coded completion percentages
+- **Planet Name Resolution**: Shows actual planet names instead of indices
+- **Time-based Warnings**: Highlights expiring orders with visual cues
+- **Completion Status**: Clear visual indicators for completed vs in-progress tasks
+- **Contextual Information**: Stratagem requirements and enemy type details
 
 ### Performance Considerations
 - **Caching**: Implement appropriate cache durations for different data types

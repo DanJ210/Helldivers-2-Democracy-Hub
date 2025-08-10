@@ -266,20 +266,67 @@
       <div class="hd-card">
         <h2 class="hd-heading-2 mb-6">🌌 Galaxy Status</h2>
         <div v-if="dashboardData?.planets" class="space-y-3">
-          <div v-for="planet in getActivePlanets()" :key="planet.index" 
-               class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border-l-4 border-blue-400">
-            <div>
-              <div class="font-semibold text-slate-100">{{ planet.name }}</div>
-              <div class="text-sm text-slate-400">{{ planet.sector }}</div>
+          <div v-for="planet in getActivePlanets()" :key="planet.index" class="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="font-semibold text-slate-100">{{ planet.name }}</div>
+                <div class="text-sm text-slate-400">{{ planet.sector }} • {{ planet.biome.name }}</div>
+                <div v-if="planet.hazards?.length" class="mt-1 flex flex-wrap gap-1">
+                  <span
+                    v-for="hz in mapHazards(planet.hazards)"
+                    :key="hz.key + '-' + (hz.extra || '')"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border"
+                    :class="hz.color"
+                    :title="hz.tooltip || hz.label"
+                  >
+                    <span aria-hidden="true">{{ hz.icon }}</span>
+                    <span>{{ hz.label }}</span>
+                    <span v-if="hz.extra" class="opacity-75">({{ hz.extra }})</span>
+                  </span>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold" :class="{
+                  'text-green-400': getHealthPercentage(planet) > 75,
+                  'text-yellow-400': getHealthPercentage(planet) > 50 && getHealthPercentage(planet) <= 75,
+                  'text-orange-400': getHealthPercentage(planet) > 25 && getHealthPercentage(planet) <= 50,
+                  'text-red-400': getHealthPercentage(planet) <= 25
+                }">
+                  {{ getHealthPercentage(planet) }}%
+                </div>
+                <div class="text-xs text-slate-400">
+                  {{ planet.health.toLocaleString() }} / {{ planet.maxHealth.toLocaleString() }}
+                </div>
+              </div>
             </div>
-            <div class="text-right">
-              <div class="font-bold" :class="{
-                'text-green-400': getHealthPercentage(planet) > 75,
-                'text-yellow-400': getHealthPercentage(planet) > 50 && getHealthPercentage(planet) <= 75,
-                'text-orange-400': getHealthPercentage(planet) > 25 && getHealthPercentage(planet) <= 50,
-                'text-red-400': getHealthPercentage(planet) <= 25
-              }">
-                {{ getHealthPercentage(planet) }}%
+
+            <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-300">
+              <div>
+                <div>Owner: <span class="font-semibold">{{ getFactionName(planet.currentOwner) }}</span></div>
+                <div class="text-xs text-slate-400">Initial: {{ getFactionName(planet.initialOwner) }}</div>
+              </div>
+              <div class="text-right">
+                <div>Coords: <span class="font-mono">{{ planet.position.x }}, {{ planet.position.y }}</span></div>
+                <div class="text-xs text-slate-400">Waypoints: {{ planet.waypoints?.length || 0 }}</div>
+              </div>
+            </div>
+
+            <div v-if="(planet.regenPerSecond?.length || 0) > 0" class="mt-2 text-xs text-slate-400">
+              Regen: +{{ getTotalRegen(planet).toLocaleString() }}/s
+            </div>
+
+            <div v-if="planet.event?.length" class="mt-3">
+              <div class="text-xs uppercase tracking-wide text-slate-400 mb-1">Active Events</div>
+              <div class="space-y-1">
+                <div v-for="ev in planet.event" :key="ev.id" class="flex justify-between items-center text-sm bg-slate-900/40 rounded p-2 border border-slate-700/50">
+                  <div>
+                    <div class="font-medium">Event {{ ev.eventType }}</div>
+                    <div class="text-xs text-slate-400">Faction: {{ getFactionName(ev.faction) }}</div>
+                  </div>
+                  <div class="text-right text-xs text-slate-400">
+                    Ends in: {{ formatTimeRemaining(ev.endTime) }}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -301,6 +348,7 @@ import { ref, onMounted, computed } from 'vue'
 import { HellDivers2ApiService } from '@/services/helldivers2Api'
 import { majorOrderInterpreter, type MajorOrderInterpretation } from '@/services/majorOrderInterpreter'
 import type { DashboardData, Planet, Dispatch } from '@/types/helldivers2'
+import { FACTIONS } from '@/types/helldivers2'
 
 const dashboardData = ref<DashboardData | null>(null)
 const interpretedMajorOrders = ref<MajorOrderInterpretation[]>([])
@@ -322,6 +370,88 @@ const formatDate = (dateString: string) => {
 const getHealthPercentage = (planet: Planet) => {
   if (planet.maxHealth === 0) return 0
   return Math.round((planet.health / planet.maxHealth) * 100)
+}
+
+const getFactionName = (factionIndex: number) => {
+  switch (factionIndex) {
+    case FACTIONS.SUPER_EARTH: return 'Super Earth'
+    case FACTIONS.TERMINIDS: return 'Terminids'
+    case FACTIONS.AUTOMATONS: return 'Automatons'
+    case FACTIONS.ILLUMINATE: return 'Illuminate'
+    default: return `Faction ${factionIndex}`
+  }
+}
+
+const getTotalRegen = (planet: Planet) => {
+  if (!planet.regenPerSecond || planet.regenPerSecond.length === 0) return 0
+  return planet.regenPerSecond.reduce((sum, r) => sum + (r.value ?? 0), 0)
+}
+
+// Map and format hazards. The API sometimes returns plain strings or JSON-like strings.
+type HazardChip = { key: string; label: string; icon: string; color: string; tooltip?: string; extra?: string }
+const HAZARD_MAP: Record<string, Omit<HazardChip, 'key'>> = {
+  // Common hazards with friendly names and icons
+  'volcanic activity': { label: 'Volcanic', icon: '🌋', color: 'bg-red-500/20 text-red-300 border-red-500/30', tooltip: 'Volcanic eruptions and lava flows' },
+  'blizzards': { label: 'Blizzards', icon: '❄️', color: 'bg-cyan-500/20 text-cyan-200 border-cyan-500/30', tooltip: 'Severe snowstorms reduce visibility' },
+  'sandstorms': { label: 'Sandstorms', icon: '🌪️', color: 'bg-amber-500/20 text-amber-200 border-amber-500/30', tooltip: 'Sand reduces accuracy and vision' },
+  'electrical storms': { label: 'Electro-Storms', icon: '⚡', color: 'bg-yellow-500/20 text-yellow-200 border-yellow-500/30', tooltip: 'Lightning hazards' },
+  'meteor storms': { label: 'Meteors', icon: '☄️', color: 'bg-orange-500/20 text-orange-200 border-orange-500/30', tooltip: 'Falling meteors impact the battlefield' },
+  'hellpods interference': { label: 'Drop Interference', icon: '🛰️', color: 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-500/30', tooltip: 'Hellpod drop disruptions' },
+  'thick fog': { label: 'Thick Fog', icon: '🌫️', color: 'bg-slate-500/20 text-slate-200 border-slate-500/30', tooltip: 'Reduced visibility' },
+  'radioactive': { label: 'Radiation', icon: '☢️', color: 'bg-lime-500/20 text-lime-200 border-lime-500/30', tooltip: 'Radioactive contamination' },
+}
+
+const normalizeHazardKey = (raw: string) => raw.trim().toLowerCase()
+
+const tryParseJson = (value: string): any | null => {
+  try {
+    const parsed = JSON.parse(value)
+    // Accept only objects with a name field or arrays with first element object/string
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+const mapHazards = (hazards: Array<string | Record<string, any>>): HazardChip[] => {
+  const chips: HazardChip[] = []
+  for (const h of hazards) {
+    let label: string | undefined
+    let extra: string | undefined
+    let tooltip: string | undefined
+
+    // The API may return:
+    // 1) plain string ("Volcanic Activity")
+    // 2) JSON string ("{\"name\":...}")
+    // 3) object ({ name, severity, level, description })
+    if (typeof h === 'string') {
+      const maybe = tryParseJson(h)
+      if (maybe && typeof maybe === 'object') {
+        if (typeof maybe.name === 'string') label = maybe.name
+        if (maybe.severity !== undefined) extra = `S${maybe.severity}`
+        if (maybe.level !== undefined && !extra) extra = `L${maybe.level}`
+        if (typeof maybe.description === 'string') tooltip = maybe.description
+      } else {
+        label = h
+      }
+    } else if (h && typeof h === 'object') {
+      if (typeof h.name === 'string') label = h.name
+      if (h.severity !== undefined) extra = `S${h.severity}`
+      if (h.level !== undefined && !extra) extra = `L${h.level}`
+      if (typeof h.description === 'string') tooltip = h.description
+    }
+
+    const safeLabel = label ?? 'Hazard'
+    const key = normalizeHazardKey(safeLabel)
+    const mapped = HAZARD_MAP[key]
+    if (mapped) {
+      chips.push({ key, label: mapped.label, icon: mapped.icon, color: mapped.color, tooltip: tooltip || mapped.tooltip, extra })
+    } else {
+      // Fallback: generic chip
+      chips.push({ key, label: safeLabel, icon: '⚠️', color: 'bg-slate-700 text-slate-200 border-slate-500/40', tooltip, extra })
+    }
+  }
+  return chips
 }
 
 const getActivePlanets = () => {

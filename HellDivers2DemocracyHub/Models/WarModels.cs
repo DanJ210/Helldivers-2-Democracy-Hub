@@ -117,7 +117,7 @@ namespace HellDivers2DemocracyHub.Models
         /// Total Terminid enemies eliminated. API uses "terminidKills" property name.
         /// </summary>
         [JsonPropertyName("terminidKills")]
-        public ulong BugKills { get; set; }
+        public ulong TerminidKills { get; set; }
         
         public ulong AutomatonKills { get; set; }
         public ulong IlluminateKills { get; set; }

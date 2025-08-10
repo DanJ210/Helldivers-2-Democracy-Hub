@@ -58,7 +58,7 @@ export interface Statistics {
   missionsWon: number
   missionsLost: number
   missionTime: number
-  bugKills: number
+  terminidKills: number
   automatonKills: number
   illuminateKills: number
   bulletsFired: number

@@ -146,7 +146,7 @@
             <div class="stats-grid">
               <div class="stat">
                 <span class="label">🐛 Terminid Kills:</span>
-                <span class="value terminid">{{ dashboardData.statistics.bugKills.toLocaleString() }}</span>
+                <span class="value terminid">{{ dashboardData.statistics.terminidKills.toLocaleString() }}</span>
               </div>
               <div class="stat">
                 <span class="label">🤖 Automaton Kills:</span>
@@ -330,7 +330,7 @@ const formatDuration = (seconds: number) => {
 }
 
 const getTotalKills = (statistics: any) => {
-  return statistics.bugKills + statistics.automatonKills + statistics.illuminateKills
+  return statistics.terminidKills + statistics.automatonKills + statistics.illuminateKills
 }
 
 const getSuccessRateClass = (successRate: number) => {

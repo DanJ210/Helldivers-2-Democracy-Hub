@@ -1,89 +1,115 @@
 <template>
-  <div class="democracy-hub">
-    <header class="hub-header">
-      <h1>🚀 HELLDIVERS 2 DEMOCRACY HUB 🚀</h1>
-      <p>Serving Super Earth since 2184</p>
+  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
+    <!-- Header -->
+    <header class="hd-card-header text-center py-8 mb-8">
+      <h1 class="hd-heading-1 text-yellow-400">🚀 HELLDIVERS 2 DEMOCRACY HUB 🚀</h1>
+      <p class="hd-text-body mt-3">Serving Super Earth since 2184</p>
     </header>
 
-    <div v-if="loading" class="loading">
-      <p>📡 Establishing connection with Super Earth High Command...</p>
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-16">
+      <p class="hd-text-body text-lg">📡 Establishing connection with Super Earth High Command...</p>
     </div>
 
-    <div v-else-if="error" class="error">
-      <p>⚠️ Communication error with Super Earth: {{ error }}</p>
-      <button @click="loadDashboard" class="retry-btn">Retry Connection</button>
+    <!-- Error State -->
+    <div v-else-if="error" class="text-center py-16">
+      <p class="text-red-400 text-lg mb-4">⚠️ Communication error with Super Earth: {{ error }}</p>
+      <button @click="loadDashboard" class="hd-button-primary">Retry Connection</button>
     </div>
 
-    <div v-else class="dashboard-grid">
+    <!-- Dashboard Content -->
+    <div v-else class="hd-dashboard-grid max-w-7xl mx-auto px-6 pb-8">
 
       <!-- 1. Major Orders -->
-      <div class="info-card major-orders">
-        <h2>🎯 Major Orders</h2>
-        <div v-if="dashboardData?.majorOrders.length === 0">
+      <div class="hd-card lg:col-span-2">
+        <h2 class="hd-heading-2 mb-6">🎯 Major Orders</h2>
+        
+        <div v-if="interpretedMajorOrders.length === 0" class="hd-text-body text-center py-8">
           <p>No active major orders from Super Earth High Command</p>
         </div>
-        <div v-else>
-          <div v-for="order in dashboardData?.majorOrders" :key="order.id" class="major-order">
-            <div class="order-header">
-              <div class="order-title">
-                <h3>{{ order.title }}</h3>
-                <span class="order-id">Order #{{ order.id }}</span>
+        
+        <div v-else class="space-y-6">
+          <div v-for="order in interpretedMajorOrders" :key="order.id" class="border border-yellow-500/30 bg-yellow-500/5 rounded-xl p-6">
+            
+            <!-- Order Header -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+              <div>
+                <h3 class="hd-heading-3 text-yellow-400 mb-2">{{ order.title }}</h3>
+                <span class="inline-block bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
+                  Order #{{ order.id }}
+                </span>
               </div>
-              <div class="order-meta">
-                <div class="expiration" :class="{ 'expiring-soon': isExpiringSoon(order.expiration) }">
-                  ⏰ {{ formatTimeRemaining(order.expiration) }}
+              
+              <div class="flex flex-col items-end gap-2">
+                <!-- Completion Percentage -->
+                <div class="px-3 py-1 rounded-full text-sm font-bold" :class="getCompletionTailwindClass(order.completionPercentage)">
+                  📊 {{ order.completionPercentage.toFixed(1) }}% Complete
                 </div>
-                <div v-if="order.flags" class="flags">
+                
+                <!-- Expiration -->
+                <div class="px-3 py-1 rounded-full text-sm font-medium" 
+                     :class="getExpirationClasses(order)">
+                  ⏰ {{ order.timeRemaining }}
+                </div>
+                
+                <!-- Flags -->
+                <div v-if="order.flags" class="text-slate-400 text-sm">
                   🏷️ Flags: {{ order.flags }}
                 </div>
               </div>
             </div>
 
-            <div class="order-content">
-              <div class="briefing">
-                <p>{{ order.briefing }}</p>
-                <p v-if="order.description" class="description">{{ order.description }}</p>
+            <!-- Order Content -->
+            <div class="space-y-4">
+              <!-- Briefing -->
+              <div class="bg-slate-800/50 rounded-lg p-4">
+                <p class="hd-text-body leading-relaxed">{{ order.briefing }}</p>
+                <p v-if="order.description" class="hd-text-body text-slate-300 italic mt-2">{{ order.description }}</p>
               </div>
 
-              <div class="progress-section" v-if="order.progress.length > 0">
-                <h4>📈 Progress</h4>
-                <div class="progress-indicators">
-                  <div v-for="(value, index) in order.progress" :key="index" class="progress-item">
-                    <span class="progress-label">Objective {{ index + 1 }}:</span>
-                    <span class="progress-value">{{ value.toLocaleString() }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="tasks-section" v-if="order.tasks.length > 0">
-                <h4>🎯 Objectives</h4>
-                <div class="task-list">
-                  <div v-for="(task, index) in order.tasks" :key="index" class="task-item">
-                    <div class="task-header">
-                      <span class="task-label">Task {{ index + 1 }}</span>
-                      <span class="task-type">Type {{ task.type }}</span>
-                    </div>
-                    <div class="task-details" v-if="task.values.length > 0">
-                      <div class="task-values">
-                        <span v-for="(value, valueIndex) in task.values" :key="valueIndex" class="task-value">
-                          {{ value.toLocaleString() }}
-                        </span>
+              <!-- Tasks Section -->
+              <div v-if="order.tasks.length > 0" class="bg-slate-800/30 rounded-lg p-4">
+                <h4 class="hd-heading-3 text-blue-400 mb-4">🎯 Mission Objectives</h4>
+                <div class="space-y-3">
+                  <div v-for="(task, index) in order.tasks" :key="index" 
+                       class="p-3 rounded-lg border-l-4 transition-all" 
+                       :class="task.isCompleted ? 'border-green-500 bg-green-500/10' : 'border-slate-500 bg-slate-700/30'">
+                    
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-3">
+                        <span class="text-xl">{{ getTaskIcon(task) }}</span>
+                        <span class="hd-text-body font-medium">{{ task.description }}</span>
                       </div>
+                      <span class="px-2 py-1 rounded text-xs font-bold" :class="task.isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'">
+                        {{ task.isCompleted ? '✅ Complete' : '🔄 In Progress' }}
+                      </span>
+                    </div>
+                    
+                    <div v-if="task.completionDetails" class="text-slate-300 text-sm font-mono mt-2">
+                      {{ task.completionDetails }}
+                    </div>
+                    
+                    <div v-if="task.stratagemRequired" class="text-blue-400 text-sm italic mt-2">
+                      ⚡ Specific stratagem required
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="rewards-section">
-                <h4>🏆 Rewards</h4>
-                <div v-if="order.rewards.length === 0" class="no-rewards">
+              <!-- Rewards Section -->
+              <div class="bg-slate-800/30 rounded-lg p-4">
+                <h4 class="hd-heading-3 text-blue-400 mb-4">🏆 Rewards</h4>
+                <div v-if="order.rewards.length === 0" class="text-slate-400 text-center py-4 italic">
                   No rewards specified
                 </div>
-                <div v-else class="reward-list">
-                  <div v-for="(reward, index) in order.rewards" :key="index" class="reward-item">
-                    <span class="reward-icon">{{ getRewardIcon(reward.type) }}</span>
-                    <span class="reward-amount">{{ reward.amount.toLocaleString() }}</span>
-                    <span class="reward-type">{{ getRewardTypeName(reward.type) }}</span>
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div v-for="(reward, index) in order.rewards" :key="index" 
+                       class="flex items-center justify-between bg-slate-700/50 rounded-lg p-3">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xl">{{ reward.icon }}</span>
+                      <span class="hd-text-body">{{ reward.type }}</span>
+                    </div>
+                    <span class="font-bold text-green-400">{{ reward.amount.toLocaleString() }}</span>
                   </div>
                 </div>
               </div>
@@ -93,162 +119,179 @@
       </div>
 
       <!-- 2. High Command Dispatches -->
-      <div class="info-card dispatches">
-        <h2>📻 High Command Dispatches</h2>
-        <div v-if="recentDispatches.length === 0" class="loading-dispatches">
-          <p>📡 Connecting to High Command...</p>
+      <div class="hd-card">
+        <h2 class="hd-heading-2 mb-6">📻 High Command Dispatches</h2>
+        
+        <div v-if="recentDispatches.length === 0" class="text-center py-8">
+          <p class="hd-text-body text-slate-400 italic">📡 Connecting to High Command...</p>
         </div>
-        <div v-else class="dispatch-list">
-          <div v-for="dispatch in recentDispatches" :key="dispatch.id" class="dispatch-item">
-            <div class="dispatch-header">
-              <span class="dispatch-id">Dispatch #{{ dispatch.id }}</span>
-              <span class="dispatch-date">{{ formatDate(dispatch.published) }}</span>
+        
+        <div v-else class="space-y-4">
+          <div v-for="dispatch in recentDispatches" :key="dispatch.id" 
+               class="border border-green-500/30 bg-green-500/5 rounded-lg p-4">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+              <span class="inline-block bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-bold">
+                Dispatch #{{ dispatch.id }}
+              </span>
+              <span class="text-slate-400 text-sm">{{ formatDate(dispatch.published) }}</span>
             </div>
-            <div class="dispatch-message" v-html="dispatch.message">
-            </div>
+            <div class="hd-text-body leading-relaxed" v-html="dispatch.message"></div>
           </div>
         </div>
       </div>
 
       <!-- 3. War Statistics -->
-      <div class="info-card statistics">
-        <h2>📊 War Statistics</h2>
-        <div v-if="dashboardData?.statistics" class="stats-container">
+      <div class="hd-card lg:col-span-2">
+        <h2 class="hd-heading-2 mb-6">📊 War Statistics</h2>
+        
+        <div v-if="dashboardData?.statistics" class="space-y-6">
           
           <!-- Mission Statistics -->
-          <div class="stats-section">
-            <h3>🚀 Mission Performance</h3>
-            <div class="stats-grid">
-              <div class="stat">
-                <span class="label">Missions Won:</span>
-                <span class="value success">{{ dashboardData.statistics.missionsWon.toLocaleString() }}</span>
+          <div class="hd-stats-section">
+            <h3 class="hd-heading-3 text-blue-400 mb-4">🚀 Mission Performance</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Missions Won:</span>
+                <span class="hd-stat-value text-green-400">{{ dashboardData.statistics.missionsWon.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Missions Lost:</span>
-                <span class="value danger">{{ dashboardData.statistics.missionsLost.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Missions Lost:</span>
+                <span class="hd-stat-value text-red-400">{{ dashboardData.statistics.missionsLost.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Success Rate:</span>
-                <span class="value" :class="getSuccessRateClass(dashboardData.statistics.missionSuccessRate)">
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Success Rate:</span>
+                <span class="hd-stat-value" :class="getTailwindSuccessRateClass(dashboardData.statistics.missionSuccessRate)">
                   {{ dashboardData.statistics.missionSuccessRate }}%
                 </span>
               </div>
-              <div class="stat">
-                <span class="label">Mission Time:</span>
-                <span class="value">{{ formatDuration(dashboardData.statistics.missionTime) }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Mission Time:</span>
+                <span class="hd-stat-value">{{ formatDuration(dashboardData.statistics.missionTime) }}</span>
               </div>
             </div>
           </div>
 
           <!-- Enemy Elimination Statistics -->
-          <div class="stats-section">
-            <h3>💀 Enemy Casualties</h3>
-            <div class="stats-grid">
-              <div class="stat">
-                <span class="label">🐛 Terminid Kills:</span>
-                <span class="value terminid">{{ dashboardData.statistics.terminidKills.toLocaleString() }}</span>
+          <div class="hd-stats-section">
+            <h3 class="hd-heading-3 text-blue-400 mb-4">💀 Enemy Casualties</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">🐛 Terminid Kills:</span>
+                <span class="hd-stat-value text-orange-400">{{ dashboardData.statistics.terminidKills.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">🤖 Automaton Kills:</span>
-                <span class="value automaton">{{ dashboardData.statistics.automatonKills.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">🤖 Automaton Kills:</span>
+                <span class="hd-stat-value text-red-500">{{ dashboardData.statistics.automatonKills.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">👁️ Illuminate Kills:</span>
-                <span class="value illuminate">{{ dashboardData.statistics.illuminateKills.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">👁️ Illuminate Kills:</span>
+                <span class="hd-stat-value text-purple-400">{{ dashboardData.statistics.illuminateKills.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Total Kills:</span>
-                <span class="value total-kills">{{ getTotalKills(dashboardData.statistics).toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Total Kills:</span>
+                <span class="hd-stat-value text-green-500 text-lg font-bold">{{ getTotalKills(dashboardData.statistics).toLocaleString() }}</span>
               </div>
             </div>
           </div>
 
           <!-- Combat Statistics -->
-          <div class="stats-section">
-            <h3>⚔️ Combat Performance</h3>
-            <div class="stats-grid">
-              <div class="stat">
-                <span class="label">Bullets Fired:</span>
-                <span class="value">{{ dashboardData.statistics.bulletsFired.toLocaleString() }}</span>
+          <div class="hd-stats-section">
+            <h3 class="hd-heading-3 text-blue-400 mb-4">⚔️ Combat Performance</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Bullets Fired:</span>
+                <span class="hd-stat-value">{{ dashboardData.statistics.bulletsFired.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Bullets Hit:</span>
-                <span class="value">{{ dashboardData.statistics.bulletsHit.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Bullets Hit:</span>
+                <span class="hd-stat-value">{{ dashboardData.statistics.bulletsHit.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Accuracy:</span>
-                <span class="value" :class="getAccuracyClass(dashboardData.statistics.accuracy)">
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Accuracy:</span>
+                <span class="hd-stat-value" :class="getTailwindAccuracyClass(dashboardData.statistics.accuracy)">
                   {{ dashboardData.statistics.accuracy }}%
                 </span>
               </div>
-              <div class="stat">
-                <span class="label">Friendly Fire:</span>
-                <span class="value danger">{{ dashboardData.statistics.friendlies.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Friendly Fire:</span>
+                <span class="hd-stat-value text-red-400">{{ dashboardData.statistics.friendlies.toLocaleString() }}</span>
               </div>
             </div>
           </div>
 
           <!-- Helldivers Statistics -->
-          <div class="stats-section">
-            <h3>🪖 Helldivers Status</h3>
-            <div class="stats-grid">
-              <div class="stat">
-                <span class="label">Active Helldivers:</span>
-                <span class="value player-count pulse">{{ dashboardData.statistics.playerCount.toLocaleString() }}</span>
+          <div class="hd-stats-section">
+            <h3 class="hd-heading-3 text-blue-400 mb-4">🪖 Helldivers Status</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Active Helldivers:</span>
+                <span class="hd-stat-value text-blue-400 text-lg font-bold hd-pulse">{{ dashboardData.statistics.playerCount.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Total Deaths:</span>
-                <span class="value danger">{{ dashboardData.statistics.deaths.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Total Deaths:</span>
+                <span class="hd-stat-value text-red-400">{{ dashboardData.statistics.deaths.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Revives:</span>
-                <span class="value success">{{ dashboardData.statistics.revives.toLocaleString() }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Revives:</span>
+                <span class="hd-stat-value text-green-400">{{ dashboardData.statistics.revives.toLocaleString() }}</span>
               </div>
-              <div class="stat">
-                <span class="label">Total Playtime:</span>
-                <span class="value">{{ formatDuration(dashboardData.statistics.timePlayed) }}</span>
+              <div class="hd-stat-item">
+                <span class="hd-stat-label">Total Playtime:</span>
+                <span class="hd-stat-value">{{ formatDuration(dashboardData.statistics.timePlayed) }}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- 4. Current War Status -->
+      <div class="hd-card">
+        <h2 class="hd-heading-2 mb-6">🌍 Current War Status</h2>
+        <div v-if="dashboardData?.warStatus" class="space-y-4">
+          <h3 class="hd-heading-3 text-yellow-400">{{ dashboardData.warStatus.name }}</h3>
+          <div class="space-y-3">
+            <div class="hd-stat-item">
+              <span class="hd-stat-label">War Started:</span>
+              <span class="hd-stat-value">{{ formatDate(dashboardData.warStatus.started) }}</span>
+            </div>
+            <div class="hd-stat-item">
+              <span class="hd-stat-label">Active Planets:</span>
+              <span class="hd-stat-value">{{ dashboardData.planets.length }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Galaxy Status -->
+      <div class="hd-card">
+        <h2 class="hd-heading-2 mb-6">🌌 Galaxy Status</h2>
+        <div v-if="dashboardData?.planets" class="space-y-3">
+          <div v-for="planet in getActivePlanets()" :key="planet.index" 
+               class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border-l-4 border-blue-400">
+            <div>
+              <div class="font-semibold text-slate-100">{{ planet.name }}</div>
+              <div class="text-sm text-slate-400">{{ planet.sector }}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold" :class="{
+                'text-green-400': getHealthPercentage(planet) > 75,
+                'text-yellow-400': getHealthPercentage(planet) > 50 && getHealthPercentage(planet) <= 75,
+                'text-orange-400': getHealthPercentage(planet) > 25 && getHealthPercentage(planet) <= 50,
+                'text-red-400': getHealthPercentage(planet) <= 25
+              }">
+                {{ getHealthPercentage(planet) }}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
     
-    <!-- 4. Current War Status -->
-      <div class="info-card war-status">
-        <h2>🌍 Current War Status</h2>
-        <div v-if="dashboardData?.warStatus">
-          <h3>{{ dashboardData.warStatus.name }}</h3>
-          <div class="stats-grid">
-            <div class="stat">
-              <span class="label">War Started:</span>
-              <span class="value">{{ formatDate(dashboardData.warStatus.started) }}</span>
-            </div>
-            <div class="stat">
-              <span class="label">Active Planets:</span>
-              <span class="value">{{ dashboardData.planets.length }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5 . Galaxy Status -->
-      <div class="info-card planets">
-        <h2>🌌 Galaxy Status</h2>
-        <div v-if="dashboardData?.planets" class="planet-list">
-          <div v-for="planet in getActivePlanets()" :key="planet.index" class="planet-item">
-            <div class="planet-name">{{ planet.name }}</div>
-            <div class="planet-info">
-              <span class="sector">{{ planet.sector }}</span>
-              <span class="health">{{ getHealthPercentage(planet) }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    <footer class="hub-footer">
-      <p>Last updated: {{ lastUpdated }}</p>
-      <p>FOR DEMOCRACY! FOR SUPER EARTH!</p>
+    <!-- Footer -->
+    <footer class="text-center mt-12 pt-8 border-t border-slate-700 text-slate-400">
+      <p class="mb-2">Last updated: {{ lastUpdated }}</p>
+      <p class="font-bold text-yellow-400">FOR DEMOCRACY! FOR SUPER EARTH!</p>
     </footer>
   </div>
 </template>
@@ -256,9 +299,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { HellDivers2ApiService } from '@/services/helldivers2Api'
+import { majorOrderInterpreter, type MajorOrderInterpretation } from '@/services/majorOrderInterpreter'
 import type { DashboardData, Planet, Dispatch } from '@/types/helldivers2'
 
 const dashboardData = ref<DashboardData | null>(null)
+const interpretedMajorOrders = ref<MajorOrderInterpretation[]>([])
 const recentDispatches = ref<Dispatch[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -333,16 +378,35 @@ const getTotalKills = (statistics: any) => {
   return statistics.terminidKills + statistics.automatonKills + statistics.illuminateKills
 }
 
-const getSuccessRateClass = (successRate: number) => {
-  if (successRate >= 90) return 'success'
-  if (successRate >= 75) return 'warning'
-  return 'danger'
+// Tailwind CSS class functions for dynamic styling
+const getCompletionTailwindClass = (percentage: number) => {
+  if (percentage >= 100) return 'bg-green-500/20 text-green-400'
+  if (percentage >= 75) return 'bg-lime-500/20 text-lime-400'
+  if (percentage >= 50) return 'bg-yellow-500/20 text-yellow-400'
+  if (percentage >= 25) return 'bg-orange-500/20 text-orange-400'
+  return 'bg-red-500/20 text-red-400'
 }
 
-const getAccuracyClass = (accuracy: number) => {
-  if (accuracy >= 75) return 'success'
-  if (accuracy >= 50) return 'warning'
-  return 'danger'
+const getTailwindSuccessRateClass = (successRate: number) => {
+  if (successRate >= 90) return 'text-green-400'
+  if (successRate >= 75) return 'text-yellow-400'
+  return 'text-red-400'
+}
+
+const getTailwindAccuracyClass = (accuracy: number) => {
+  if (accuracy >= 75) return 'text-green-400'
+  if (accuracy >= 50) return 'text-yellow-400'
+  return 'text-red-400'
+}
+
+const getExpirationClasses = (order: any) => {
+  if (order.isExpired) {
+    return 'bg-slate-500/20 text-slate-400 line-through'
+  } else if (order.isExpiringSoon) {
+    return 'bg-red-500/20 text-red-400 hd-pulse'  
+  } else {
+    return 'bg-green-500/20 text-green-400'
+  }
 }
 
 const getRewardIcon = (type: number) => {
@@ -363,6 +427,14 @@ const getRewardTypeName = (type: number) => {
   }
 }
 
+const getTaskIcon = (task: any) => {
+  switch (task.type) {
+    case 'liberation': return '🏛️'
+    case 'elimination': return '⚔️'
+    default: return '🎯'
+  }
+}
+
 const loadDashboard = async () => {
   try {
     loading.value = true
@@ -370,6 +442,14 @@ const loadDashboard = async () => {
     
     const data = await HellDivers2ApiService.getDashboard()
     dashboardData.value = data
+    
+    // Update the interpreter with current planet data
+    if (data.planets.length > 0) {
+      majorOrderInterpreter.updatePlanets(data.planets)
+    }
+    
+    // Interpret major orders for better display
+    interpretedMajorOrders.value = majorOrderInterpreter.interpretMajorOrders(data.majorOrders)
     
     const dispatches = await HellDivers2ApiService.getDispatches()
     recentDispatches.value = dispatches.slice(0, 3)
@@ -388,439 +468,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.democracy-hub {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-  color: #ffffff;
-  min-height: 100vh;
+@reference "tailwindcss";
+/* Custom animations and effects that can't be achieved with Tailwind alone */
+
+/* Enhanced pulse animation for active player count */
+.hd-pulse {
+  animation: enhanced-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.hub-header {
-  text-align: center;
-  margin-bottom: 30px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-}
-
-.hub-header h1 {
-  font-size: 2.5rem;
-  margin: 0;
-  color: #ffdd00;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-.hub-header p {
-  font-size: 1.2rem;
-  margin: 10px 0 0 0;
-  color: #cccccc;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  font-size: 1.2rem;
-}
-
-.error {
-  text-align: center;
-  padding: 40px;
-  color: #ff6b6b;
-}
-
-.retry-btn {
-  background: #4ecdc4;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.retry-btn:hover {
-  background: #45b7aa;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-@media (min-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
+@keyframes enhanced-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
   }
 }
 
-@media (min-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+/* Stat item hover effect */
+.hd-stat-item {
+  @apply flex justify-between items-center py-3 px-4 rounded-lg bg-slate-800/30 transition-all duration-200 hover:bg-slate-700/50;
 }
 
-.info-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+.hd-stat-label {
+  @apply text-slate-300 text-sm;
 }
 
-.info-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+.hd-stat-value {
+  @apply font-semibold text-slate-100;
 }
 
-.info-card h2 {
-  margin: 0 0 15px 0;
-  color: #ffdd00;
-  font-size: 1.3rem;
-  text-align: center;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.stats-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.stat:last-child {
-  border-bottom: none;
-}
-
-.label {
-  color: #cccccc;
-  font-size: 0.9rem;
-}
-
-.value {
-  font-weight: bold;
-  font-size: 1rem;
-}
-
-.success {
-  color: #4ecdc4;
-}
-
-.warning {
-  color: #ffdd00;
-}
-
-.danger {
-  color: #ff6b6b;
-}
-
-.terminid {
-  color: #ff9800;
-}
-
-.automaton {
-  color: #f44336;
-}
-
-.illuminate {
-  color: #9c27b0;
-}
-
-.total-kills {
-  color: #4caf50;
-  font-size: 1.1rem;
-}
-
-.player-count {
-  color: #2196f3;
-  font-size: 1.1rem;
-}
-
-.pulse {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
-}
-
-.stats-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.stats-section {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  padding: 15px;
-  border-left: 4px solid #ffdd00;
-}
-
-.stats-section h3 {
-  margin: 0 0 15px 0;
-  color: #ffdd00;
-  font-size: 1.1rem;
-}
-
-.planet-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.planet-item {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 12px;
-  border-radius: 8px;
-  border-left: 4px solid #4ecdc4;
-}
-
-.planet-name {
-  font-weight: bold;
-  color: #ffffff;
-  margin-bottom: 5px;
-}
-
-.planet-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  color: #cccccc;
-}
-
-.major-order {
-  background: rgba(255, 221, 0, 0.1);
-  border: 1px solid rgba(255, 221, 0, 0.3);
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.order-title h3 {
-  margin: 0;
-  color: #ffdd00;
-  font-size: 1.1rem;
-}
-
-.order-id {
-  background: rgba(255, 221, 0, 0.2);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  color: #ffdd00;
-  margin-top: 5px;
-  display: inline-block;
-}
-
-.order-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 5px;
-}
-
-.expiration {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
-  padding: 4px 8px;
-  border-radius: 5px;
-  font-size: 0.8rem;
-}
-
-.expiring-soon {
-  background: rgba(255, 107, 107, 0.2);
-  color: #ff6b6b;
-}
-
-.flags {
-  font-size: 0.8rem;
-  color: #cccccc;
-}
-
-.order-content {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.briefing p {
-  margin: 0 0 8px 0;
-  line-height: 1.5;
-}
-
-.description {
-  color: #cccccc;
-  font-style: italic;
-}
-
-.progress-section, .tasks-section, .rewards-section {
-  background: rgba(0, 0, 0, 0.2);
-  padding: 12px;
-  border-radius: 8px;
-}
-
-.progress-section h4, .tasks-section h4, .rewards-section h4 {
-  margin: 0 0 10px 0;
-  color: #4ecdc4;
-  font-size: 1rem;
-}
-
-.progress-indicators, .task-list, .reward-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.progress-item, .reward-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 8px 12px;
-  border-radius: 5px;
-}
-
-.task-item {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px 12px;
-  border-radius: 5px;
-}
-
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.task-label {
-  font-weight: bold;
-  color: #4ecdc4;
-}
-
-.task-type {
-  font-size: 0.8rem;
-  color: #cccccc;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-.task-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.task-value {
-  background: rgba(255, 221, 0, 0.2);
-  color: #ffdd00;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.85rem;
-}
-
-.no-rewards {
-  color: #cccccc;
-  font-style: italic;
-  text-align: center;
-  padding: 10px;
-}
-
-.reward-icon {
-  font-size: 1.2rem;
-}
-
-.reward-amount {
-  font-weight: bold;
-  color: #4caf50;
-}
-
-.reward-type {
-  color: #cccccc;
-  font-size: 0.9rem;
-}
-
-.dispatch-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.dispatch-item {
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.dispatch-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.dispatch-id {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.dispatch-date {
-  color: #cccccc;
-  font-size: 0.85rem;
-}
-
-.dispatch-message {
-  line-height: 1.5;
-  color: #ffffff;
-}
-
-.loading-dispatches {
-  text-align: center;
-  color: #cccccc;
-  font-style: italic;
-  padding: 20px;
-}
-
-.hub-footer {
-  text-align: center;
-  margin-top: 40px;
-  padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  color: #cccccc;
-}
-
-.hub-footer p {
-  margin: 5px 0;
+/* Stats section styling */
+.hd-stats-section {
+  @apply bg-slate-800/20 rounded-lg p-5 border-l-4 border-blue-400;
 }
 </style>

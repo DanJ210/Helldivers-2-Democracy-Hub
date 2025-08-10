@@ -5,9 +5,7 @@
     xmlns:xlink="http://www.w3.org/1999/xlink"
     aria-hidden="true"
     role="img"
-    class="iconify iconify--mdi"
-    width="24"
-    height="24"
+    class="w-5 h-5 inline-block"
     preserveAspectRatio="xMidYMid meet"
     viewBox="0 0 24 24"
   >

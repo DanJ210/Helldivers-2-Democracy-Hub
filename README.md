@@ -2,7 +2,7 @@
 
 A full-stack web application providing real-time information about the Helldivers 2 galactic war, built with ASP.NET Core 9.0 and Vue.js.
 
-[![Deploy to Azure](https://github.com/DanJ210/Helldivers-2-Democracy-Hub/actions/workflows/azure-container-apps.yml/badge.svg)](https://github.com/DanJ210/Helldivers-2-Democracy-Hub/actions/workflows/azure-container-apps.yml)
+[![Build and Deploy to Azure Container Apps](https://github.com/DanJ210/Helldivers-2-Democracy-Hub/actions/workflows/azure-container-apps.yml/badge.svg)](https://github.com/DanJ210/Helldivers-2-Democracy-Hub/actions/workflows/azure-container-apps.yml)
 
 ## 🌐 Live Application
 

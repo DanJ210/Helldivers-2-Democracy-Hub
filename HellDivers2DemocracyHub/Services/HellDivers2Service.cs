@@ -182,13 +182,40 @@ namespace HellDivers2DemocracyHub.Services
             {
                 _logger.LogInformation("Fetching dispatches from Helldivers 2 API");
                 var response = await _httpClient.GetStringAsync(DispatchesEndpoint);
-                
+
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 };
 
-                var dispatches = JsonSerializer.Deserialize<List<Dispatch>>(response, options);
+                // The API may return a raw array or wrap the array in an object. Handle both.
+                List<Dispatch>? dispatches = null;
+                using (var doc = JsonDocument.Parse(response))
+                {
+                    var root = doc.RootElement;
+                    if (root.ValueKind == JsonValueKind.Array)
+                    {
+                        dispatches = JsonSerializer.Deserialize<List<Dispatch>>(response, options);
+                    }
+                    else if (root.ValueKind == JsonValueKind.Object)
+                    {
+                        if (root.TryGetProperty("dispatches", out var arr) ||
+                            root.TryGetProperty("items", out arr) ||
+                            root.TryGetProperty("data", out arr) ||
+                            root.TryGetProperty("results", out arr))
+                        {
+                            dispatches = JsonSerializer.Deserialize<List<Dispatch>>(arr.GetRawText(), options);
+                        }
+                        else
+                        {
+                            // As a last resort, try to deserialize the object itself if it matches the expected array
+                            dispatches = JsonSerializer.Deserialize<List<Dispatch>>(response, options);
+                        }
+                    }
+                }
+
+                var count = dispatches?.Count ?? 0;
+                _logger.LogInformation("Dispatches fetched: {Count}", count);
                 return dispatches ?? new List<Dispatch>();
             }
             catch (HttpRequestException ex)

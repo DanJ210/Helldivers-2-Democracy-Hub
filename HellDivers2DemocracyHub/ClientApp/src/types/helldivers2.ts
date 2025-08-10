@@ -25,6 +25,9 @@ export interface Planet {
   currentOwner: number
   regenPerSecond: RegenEvent[]
   event: Event[]
+  // Optional fields observed from API/back-end for richer data
+  regions?: Region[]
+  statistics?: PlanetStatistics
 }
 
 export interface Biome {
@@ -52,6 +55,26 @@ export interface Event {
   endTime: string
   campaignType: number
   jointOperationIds: number
+}
+
+// Optional per-planet statistics (shape may vary by API version)
+export interface PlanetStatistics {
+  players?: number
+}
+
+// Optional planet region info; includes player counts per region
+export interface Region {
+  id: number
+  hash: number
+  name?: string
+  description?: string
+  health?: number
+  maxHealth: number
+  size: string
+  regenPerSecond?: number
+  availabilityFactor?: number
+  isAvailable: boolean
+  players: number
 }
 
 export interface Statistics {

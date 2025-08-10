@@ -269,8 +269,17 @@
           <div v-for="planet in getActivePlanets()" :key="planet.index" class="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
             <div class="flex justify-between items-start">
               <div>
-                <div class="font-semibold text-slate-100">{{ planet.name }}</div>
-                <div class="text-sm text-slate-400">{{ planet.sector }} • {{ planet.biome.name }}</div>
+                <div class="font-semibold text-slate-100 flex items-center gap-2">
+                  <span>{{ planet.name }}</span>
+                  <span v-if="getPlanetPlayerCount(planet) > 0" class="inline-flex items-center gap-1 text-xs text-green-300" :title="getPlanetPlayerTooltip(planet)">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true"></span>
+                    <span class="sr-only">Players online</span>
+                  </span>
+                  <span v-if="isUnderAttack(planet)" class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border bg-red-500/20 text-red-300 border-red-500/30" :title="'Attackers: ' + getAttackerFactions(planet).join(', ')">
+                    🔥 Under attack
+                  </span>
+                </div>
+                <div class="text-sm text-slate-400">{{ planet.sector }} • {{ planet.biome?.name || 'Unknown Biome' }}</div>
                 <div v-if="planet.hazards?.length" class="mt-1 flex flex-wrap gap-1">
                   <span
                     v-for="hz in mapHazards(planet.hazards)"
@@ -283,6 +292,48 @@
                     <span>{{ hz.label }}</span>
                     <span v-if="hz.extra" class="opacity-75">({{ hz.extra }})</span>
                   </span>
+                </div>
+                <div class="mt-2 flex items-center gap-2 text-xs text-slate-300">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                        :title="getPlanetPlayerTooltip(planet)"
+                        role="button"
+                        tabindex="0"
+                        @click="togglePlanetStats(planet.index)"
+                        @keydown.enter.prevent="togglePlanetStats(planet.index)"
+                        @keydown.space.prevent="togglePlanetStats(planet.index)">
+                    👥 {{ getPlanetPlayerCount(planet).toLocaleString() }}
+                  </span>
+                  <div class="relative inline-block">
+                    <button class="hd-stats-toggle px-2 py-0.5 rounded border border-slate-600 hover:bg-slate-700/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 transition text-slate-200 flex items-center gap-1"
+                            @click="togglePlanetStats(planet.index)"
+                            :aria-expanded="isPlanetStatsOpen(planet.index)"
+                            :aria-controls="`stats-popover-${planet.index}`"
+                            :title="isPlanetStatsOpen(planet.index) ? 'Hide planet statistics' : 'Show planet statistics'">
+                      📊 Stats
+                      <span aria-hidden="true">{{ isPlanetStatsOpen(planet.index) ? '▾' : '▸' }}</span>
+                    </button>
+                    <div v-if="isPlanetStatsOpen(planet.index)" :id="`stats-popover-${planet.index}`" role="dialog" :aria-label="`Planet stats for ${planet.name}`"
+                         class="hd-stats-popover absolute left-0 mt-2 z-50 w-72 p-3 rounded-lg border border-slate-700 bg-slate-900/95 shadow-xl backdrop-blur-sm">
+                      <div class="text-slate-400 text-xs uppercase tracking-wide mb-2">Planet Stats</div>
+                      <ul class="space-y-1 text-slate-200">
+                        <li class="flex justify-between"><span>Players</span><span class="font-mono">{{ getPlanetPlayerCount(planet).toLocaleString() }}</span></li>
+                        <li class="flex justify-between"><span>Health</span><span class="font-mono">{{ getHealthPercentage(planet) }}% ({{ planet.health.toLocaleString() }} / {{ planet.maxHealth.toLocaleString() }})</span></li>
+                        <li class="flex justify-between"><span>Regen/s</span><span class="font-mono">+{{ getTotalRegen(planet).toLocaleString() }}</span></li>
+                        <li class="flex justify-between"><span>Owner</span><span class="font-mono">{{ getFactionName(planet.currentOwner) }}</span></li>
+                        <li class="flex justify-between"><span>Coords</span><span class="font-mono">{{ planet.position.x }}, {{ planet.position.y }}</span></li>
+                      </ul>
+                      <div class="text-slate-400 text-xs uppercase tracking-wide mt-3 mb-1">Regions</div>
+                      <div v-if="planet.regions?.length" class="max-h-40 overflow-auto pr-1">
+                        <ul class="space-y-1">
+                          <li v-for="r in planet.regions" :key="r.id" class="flex justify-between text-slate-300">
+                            <span class="truncate" :title="r.name || ('Region ' + r.id)">{{ r.name || ('Region ' + r.id) }}</span>
+                            <span class="font-mono">👥 {{ (r.players || 0).toLocaleString() }}</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div v-else class="text-slate-500">No region data</div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="text-right">
@@ -297,16 +348,22 @@
                 <div class="text-xs text-slate-400">
                   {{ planet.health.toLocaleString() }} / {{ planet.maxHealth.toLocaleString() }}
                 </div>
+       <div class="mt-2 w-32 h-1.5 bg-slate-700 rounded overflow-hidden" role="progressbar"
+         :aria-valuenow="getHealthPercentage(planet)" aria-valuemin="0" aria-valuemax="100"
+         :aria-label="`Health of ${planet.name}`">
+         <div class="h-full transition-all duration-300" :class="getHealthBarColorClass(getHealthPercentage(planet))"
+           :style="{ width: getHealthPercentage(planet) + '%' }"></div>
+       </div>
               </div>
             </div>
 
             <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-300">
               <div>
-                <div>Owner: <span class="font-semibold">{{ getFactionName(planet.currentOwner) }}</span></div>
-                <div class="text-xs text-slate-400">Initial: {{ getFactionName(planet.initialOwner) }}</div>
+                <div>Owner: <span class="font-semibold">{{ getOwnerLabel(planet.currentOwner) }}</span></div>
+                <div class="text-xs text-slate-400">Initial: {{ getOwnerLabel(planet.initialOwner) }}</div>
               </div>
               <div class="text-right">
-                <div>Coords: <span class="font-mono">{{ planet.position.x }}, {{ planet.position.y }}</span></div>
+                <div>Coords: <span class="font-mono">{{ planet.position?.x ?? '-' }}, {{ planet.position?.y ?? '-' }}</span></div>
                 <div class="text-xs text-slate-400">Waypoints: {{ planet.waypoints?.length || 0 }}</div>
               </div>
             </div>
@@ -344,7 +401,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { HellDivers2ApiService } from '@/services/helldivers2Api'
 import { majorOrderInterpreter, type MajorOrderInterpretation } from '@/services/majorOrderInterpreter'
 import type { DashboardData, Planet, Dispatch } from '@/types/helldivers2'
@@ -382,9 +439,99 @@ const getFactionName = (factionIndex: number) => {
   }
 }
 
+// Owner label helper: accepts numeric or string owner values
+const getOwnerLabel = (owner: number | string) => {
+  if (typeof owner === 'string') return owner
+  return getFactionName(owner)
+}
+
 const getTotalRegen = (planet: Planet) => {
-  if (!planet.regenPerSecond || planet.regenPerSecond.length === 0) return 0
-  return planet.regenPerSecond.reduce((sum, r) => sum + (r.value ?? 0), 0)
+  const rp: any = (planet as any).regenPerSecond
+  if (Array.isArray(rp)) {
+    return rp.reduce((sum: number, r: any) => sum + (typeof r === 'number' ? r : (r?.value ?? 0)), 0)
+  }
+  if (typeof rp === 'number') return rp
+  if (rp && typeof rp === 'object' && typeof rp.value === 'number') return rp.value
+  return 0
+}
+
+// Player count helpers
+const getPlanetPlayersDirect = (planet: Planet): number | null => {
+  const direct = (planet as any).statistics?.players
+  return typeof direct === 'number' && isFinite(direct) ? direct : null
+}
+const getPlanetPlayersFromRegions = (planet: Planet): number => {
+  const regions = (planet as any).regions as Array<{ players?: number }> | undefined
+  if (Array.isArray(regions)) return regions.reduce((sum, r) => sum + (r.players || 0), 0)
+  return 0
+}
+const getPlanetPlayerCount = (planet: Planet): number => {
+  const direct = getPlanetPlayersDirect(planet)
+  if (direct !== null) return direct
+  return getPlanetPlayersFromRegions(planet)
+}
+const getPlanetPlayerTooltip = (planet: Planet): string => {
+  const direct = getPlanetPlayersDirect(planet)
+  const sum = getPlanetPlayersFromRegions(planet)
+  if (direct !== null && sum > 0 && sum !== direct) {
+    return `Players: ${direct.toLocaleString()} (planet) | ${sum.toLocaleString()} (regions sum)`
+  }
+  if (direct !== null) return `Players: ${direct.toLocaleString()} (planet statistics)`
+  if (sum > 0) return `Players: ${sum.toLocaleString()} (sum of regions)`
+  return 'No active players detected'
+}
+
+// UI toggle state for per-planet stats panel
+const openPlanetStats = ref<Record<number, boolean>>({})
+const togglePlanetStats = (index: number) => {
+  openPlanetStats.value[index] = !openPlanetStats.value[index]
+}
+const isPlanetStatsOpen = (index: number) => !!openPlanetStats.value[index]
+
+// Close popovers on outside click or Escape
+const handleDocumentClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement | null
+  if (!target) return
+  const insidePopover = target.closest('.hd-stats-popover')
+  const onToggle = target.closest('.hd-stats-toggle')
+  if (!insidePopover && !onToggle) {
+    openPlanetStats.value = {}
+  }
+}
+const handleDocumentKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    openPlanetStats.value = {}
+  }
+}
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('keydown', handleDocumentKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('keydown', handleDocumentKeydown)
+})
+
+// Attack helpers
+const isEventActive = (ev: { endTime: string }) => {
+  const now = Date.now()
+  const end = new Date(ev.endTime).getTime()
+  return isFinite(end) ? end > now : true
+}
+
+const isUnderAttack = (planet: Planet) => {
+  const raw = (planet as any).event
+  const events: Array<{ endTime: string }> = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+  return events.some(isEventActive)
+}
+
+const getAttackerFactions = (planet: Planet): string[] => {
+  const raw = (planet as any).event
+  const events: Array<{ faction: number; endTime: string }> = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+  const active = events.filter(isEventActive)
+  const names = active.map(ev => getFactionName(ev.faction))
+  // de-dupe while preserving order
+  return names.filter((n, i) => names.indexOf(n) === i)
 }
 
 // Map and format hazards. The API sometimes returns plain strings or JSON-like strings.
@@ -458,7 +605,22 @@ const getActivePlanets = () => {
   if (!dashboardData.value?.planets) return []
   return dashboardData.value.planets
     .filter((planet: Planet) => !planet.disabled)
-    .slice(0, 10) // Show top 10 planets
+    .slice()
+    .sort((a: Planet, b: Planet) => {
+      const pa = getPlanetPlayerCount(a) > 0 ? 1 : 0
+      const pb = getPlanetPlayerCount(b) > 0 ? 1 : 0
+      if (pa !== pb) return pb - pa // planets with players first
+
+      const ua = isUnderAttack(a) ? 1 : 0
+      const ub = isUnderAttack(b) ? 1 : 0
+      if (ua !== ub) return ub - ua // among same player presence, attacked first
+
+      const aPct = getHealthPercentage(a)
+      const bPct = getHealthPercentage(b)
+      if (aPct !== bPct) return aPct - bPct // lowest health first
+
+      return a.name.localeCompare(b.name)
+    })
 }
 
 const isExpiringSoon = (expirationDate: string) => {
@@ -529,6 +691,13 @@ const getTailwindAccuracyClass = (accuracy: number) => {
   return 'text-red-400'
 }
 
+const getHealthBarColorClass = (pct: number) => {
+  if (pct > 75) return 'bg-green-500'
+  if (pct > 50) return 'bg-yellow-400'
+  if (pct > 25) return 'bg-orange-400'
+  return 'bg-red-500'
+}
+
 const getExpirationClasses = (order: any) => {
   if (order.isExpired) {
     return 'bg-slate-500/20 text-slate-400 line-through'
@@ -573,6 +742,29 @@ const loadDashboard = async () => {
     const data = await HellDivers2ApiService.getDashboard()
     dashboardData.value = data
     
+  // Debug: inspect planet data returned from the API
+  console.groupCollapsed('[HD2] Planets payload')
+  console.log('Count:', data.planets?.length ?? 0)
+  console.log('Planets:', data.planets)
+  console.log('Sample first planet:', data.planets?.[0])
+  console.groupEnd()
+
+    // Debug: summarize attacking factions via active events on planets
+    try {
+      const planets = Array.isArray(data.planets) ? data.planets : []
+      const withEvents = planets.filter(p => Array.isArray(p.event) && p.event.length > 0)
+      console.groupCollapsed('[HD2] Attacking factions summary')
+      console.log('Planets with active events:', withEvents.length)
+      withEvents.forEach(p => {
+        const attackers = p.event.map(ev => ({ faction: ev.faction, eventType: ev.eventType, until: ev.endTime }))
+        const attackerNames = attackers.map(a => getFactionName(a.faction))
+        console.log(`- ${p.name} (owner: ${getFactionName(p.currentOwner)})`, attackers, `attackers: ${[...new Set(attackerNames)].join(', ')}`)
+      })
+      console.groupEnd()
+    } catch (e) {
+      console.debug('[HD2] Attack summary logging skipped:', e)
+    }
+    
     // Update the interpreter with current planet data
     if (data.planets.length > 0) {
       majorOrderInterpreter.updatePlanets(data.planets)
@@ -581,8 +773,13 @@ const loadDashboard = async () => {
     // Interpret major orders for better display
     interpretedMajorOrders.value = majorOrderInterpreter.interpretMajorOrders(data.majorOrders)
     
-    const dispatches = await HellDivers2ApiService.getDispatches()
-    recentDispatches.value = dispatches.slice(0, 3)
+    let dispatches = await HellDivers2ApiService.getDispatches()
+    if (!dispatches || dispatches.length === 0) {
+      // Cache-bypass retry once in case of stale/empty cache
+      HellDivers2ApiService.forceRefresh('dispatches')
+      dispatches = await HellDivers2ApiService.getDispatches()
+    }
+    recentDispatches.value = (dispatches || []).slice(0, 3)
     
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load dashboard'

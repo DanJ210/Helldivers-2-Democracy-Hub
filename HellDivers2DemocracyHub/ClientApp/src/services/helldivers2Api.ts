@@ -23,12 +23,52 @@ export class HellDivers2ApiService {
   }
 
   private static async fetchApi<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${API_BASE}${endpoint}`)
+    const url = `${API_BASE}${endpoint}`
+    const response = await fetch(url)
     console.log('API call to:', endpoint)
     if (!response.ok) {
       throw new Error(`API Error: ${response.status} - ${response.statusText}`)
     }
-    return response.json()
+    const data: T = await response.json()
+
+    // Dev-only: log raw payloads for inspection
+    try {
+      // Vite provides import.meta.env.DEV
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - import.meta is provided by Vite at build time
+      if (import.meta && import.meta.env && import.meta.env.DEV) {
+        console.groupCollapsed(`[HD2][API] ${endpoint} response`)
+        if (endpoint === '/dashboard') {
+          const d = data as unknown as { planets?: unknown[]; majorOrders?: unknown[]; statistics?: unknown; lastUpdated?: string }
+          console.log('Summary:', {
+            planets: Array.isArray(d.planets) ? d.planets.length : 0,
+            majorOrders: Array.isArray(d.majorOrders) ? d.majorOrders.length : 0,
+            hasStatistics: !!d.statistics,
+            lastUpdated: d.lastUpdated
+          })
+          console.log('Full dashboard:', data)
+        } else if (endpoint === '/planets') {
+          const arr = data as unknown as unknown[]
+          console.log('Count:', Array.isArray(arr) ? arr.length : 0)
+          console.log('Planets:', data)
+          console.log('Sample first planet:', Array.isArray(arr) ? arr[0] : null)
+        } else if (endpoint === '/dispatches') {
+          const arr = data as unknown as unknown[]
+          console.log('Dispatches count:', Array.isArray(arr) ? arr.length : 0)
+          if (!Array.isArray(arr)) {
+            console.log('Dispatches payload (non-array):', data)
+          }
+        } else {
+          console.log('Payload:', data)
+        }
+        console.groupEnd()
+      }
+    } catch (e) {
+      // If logging fails for some reason, avoid breaking the app
+      console.debug('[HD2][API] Logging skipped due to error:', e)
+    }
+
+    return data
   }
 
   private static async getCachedData<T>(
@@ -86,7 +126,23 @@ export class HellDivers2ApiService {
   static async getDispatches(): Promise<Dispatch[]> {
     return this.getCachedData(
       'dispatches',
-      () => this.fetchApi<Dispatch[]>('/dispatches'),
+      async () => {
+        const raw = await this.fetchApi<any>('/dispatches')
+        const arr = Array.isArray(raw)
+          ? raw
+          : (raw?.dispatches ?? raw?.items ?? raw?.data ?? raw?.results ?? [])
+
+        const normalized: Dispatch[] = (Array.isArray(arr) ? arr : []).map((d: any) => ({
+          id: d?.id ?? d?.Id ?? 0,
+          published: typeof d?.published === 'string'
+            ? d.published
+            : (d?.Published ? new Date(d.Published).toISOString() : ''),
+          type: d?.type ?? d?.Type ?? 0,
+          message: d?.message ?? d?.Message ?? ''
+        }))
+
+        return normalized
+      },
       this.CACHE_DURATIONS.dispatches
     )
   }
@@ -94,7 +150,18 @@ export class HellDivers2ApiService {
   static async getDashboard(): Promise<DashboardData> {
     return this.getCachedData(
       'dashboard',
-      () => this.fetchApi<DashboardData>('/dashboard'),
+      async () => {
+        const raw = await this.fetchApi<any>('/dashboard')
+        // Normalize PascalCase from backend to camelCase expected by the UI
+        const normalized: DashboardData = {
+          warStatus: raw.warStatus ?? raw.WarStatus ?? null,
+          majorOrders: raw.majorOrders ?? raw.MajorOrders ?? [],
+          statistics: raw.statistics ?? raw.Statistics ?? null,
+          planets: raw.planets ?? raw.Planets ?? [],
+          lastUpdated: raw.lastUpdated ?? raw.LastUpdated ?? new Date().toISOString(),
+        }
+        return normalized
+      },
       this.CACHE_DURATIONS.dashboard
     )
   }

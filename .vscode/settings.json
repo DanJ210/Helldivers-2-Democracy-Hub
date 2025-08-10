@@ -1,0 +1,13 @@
+{
+  "tailwindCSS.includeLanguages": {
+    "vue": "html",
+    "vue-html": "html"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["class\\s*:\\s*[\"'`]([^\"'`]*)[\"'`]", "([^\"'`]*)"],
+    [":class=\"([^\"]*)", "([^\"]*)" ]
+  ],
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false
+}

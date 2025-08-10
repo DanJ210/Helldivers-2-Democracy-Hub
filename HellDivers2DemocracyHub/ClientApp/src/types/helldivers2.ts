@@ -112,6 +112,51 @@ export interface Task2 {
 }
 
 /**
+ * Task type constants for Major Orders
+ */
+export const TASK_TYPES = {
+  ELIMINATE: 3,        // Kill objectives (eliminate X enemies)
+  LIBERATE: 11,        // Planet liberation objectives
+  // Add more as they are discovered
+} as const
+
+/**
+ * Value type constants that define what task values represent
+ */
+export const VALUE_TYPES = {
+  FACTION: 1,          // Enemy faction identifier
+  UNKNOWN_2: 2,        // Unknown purpose
+  TARGET_AMOUNT: 3,    // Target/goal amount
+  ENEMY_TYPE: 4,       // Specific enemy type identifier
+  STRATAGEM_ID: 5,     // Stratagem identifier for elimination tasks
+  REQUIREMENT: 6,      // General requirement flag
+  UNKNOWN_8: 8,        // Unknown purpose
+  UNKNOWN_9: 9,        // Unknown purpose
+  SECTOR: 11,          // Sector identifier
+  PLANET_INDEX: 12,    // Planet index for liberation tasks
+} as const
+
+/**
+ * Reward type constants
+ */
+export const REWARD_TYPES = {
+  MEDALS: 1,           // Medals - primary currency
+  SUPER_CREDITS: 2,    // Super Credits - premium currency
+  EXPERIENCE: 3,       // Experience points
+  WARBOND: 4,          // Warbond unlocks
+} as const
+
+/**
+ * Enemy faction constants
+ */
+export const FACTIONS = {
+  SUPER_EARTH: 0,      // Super Earth (Humans)
+  TERMINIDS: 2,        // Bug faction
+  AUTOMATONS: 3,       // Robot faction
+  ILLUMINATE: 4,       // Illuminate faction
+} as const
+
+/**
  * Represents a reward for completing a Major Order.
  */
 export interface Reward2 {

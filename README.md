@@ -45,32 +45,48 @@ A full-stack web application providing real-time information about the Helldiver
 
 ### Local Development
 
+For detailed setup instructions, see the [**Development Setup Guide**](.docs/DEVELOPMENT-SETUP.md).
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/DanJ210/Helldivers-2-Democracy-Hub.git
-   cd Helldivers-2-Democracy-Hub
+   cd "Helldivers 2 Democracy Hub"
    ```
 
-2. **Run with .NET CLI**
-   ```bash
+2. **Start development servers**
+   ```powershell
+   # Use the provided script (recommended)
+   .\start.ps1
+   
+   # Or manually:
    cd HellDivers2DemocracyHub
    dotnet run
    ```
 
 3. **Access the application**
-   - Open http://localhost:5000 in your browser
-   - The Vue.js frontend will be served alongside the API
+   - Application: https://localhost:44466
+   - API: https://localhost:7178
+   - Health check: https://localhost:7178/health
+
+## 📚 Documentation
+
+- [**� Developer Cheat Sheet**](.docs/DEVELOPER-CHEAT-SHEET.md) - Quick reference for commands and URLs
+- [**�📖 Development Setup**](.docs/DEVELOPMENT-SETUP.md) - Complete development guide
+- [**🎨 Styling System**](.docs/TAILWIND-MIGRATION-GUIDE.md) - Tailwind CSS architecture
+- [**🚀 Deployment**](deployment/DEPLOYMENT-SCRIPTS.md) - Azure deployment guide
+- [**📝 All Documentation**](.docs/README.md) - Complete documentation index
 
 ### Docker Development
 
 1. **Build and run with Docker**
    ```bash
-   docker build -t helldivers2-democracy-hub .
-   docker run -p 5000:5000 helldivers2-democracy-hub
+   docker-compose up -d --build
    ```
 
 2. **Access the application**
-   - Open http://localhost:5000 in your browser
+   - Application: http://localhost:5000
+   - Health check: http://localhost:5000/health
+   - View logs: `docker-compose logs -f helldivers2-democracy-hub`
 
 ## 🏗️ Project Structure
 

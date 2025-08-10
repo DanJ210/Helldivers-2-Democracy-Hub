@@ -64,7 +64,14 @@ if (app.Environment.IsProduction())
     });
 }
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection if not running in a container
+var isInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" ||
+                   Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+
+if (!isInContainer)
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseRouting();
 

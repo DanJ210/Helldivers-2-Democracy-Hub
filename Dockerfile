@@ -31,6 +31,7 @@ COPY --from=build /app/publish .
 # Set environment variables
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:5000
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 
 # Expose port
 EXPOSE 5000

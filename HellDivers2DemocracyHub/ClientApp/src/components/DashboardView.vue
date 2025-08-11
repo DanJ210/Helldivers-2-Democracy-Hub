@@ -312,8 +312,13 @@
                       📊 Stats
                       <span aria-hidden="true">{{ isPlanetStatsOpen(planet.index) ? '▾' : '▸' }}</span>
                     </button>
-                    <div v-if="isPlanetStatsOpen(planet.index)" :id="`stats-popover-${planet.index}`" role="dialog" :aria-label="`Planet stats for ${planet.name}`"
-                         class="hd-stats-popover absolute left-0 mt-2 z-50 w-72 p-3 rounded-lg border border-slate-700 bg-slate-900/95 shadow-xl backdrop-blur-sm">
+        <div v-if="isPlanetStatsOpen(planet.index)" :id="`stats-popover-${planet.index}`" role="dialog" :aria-label="`Planet stats for ${planet.name}`"
+          class="hd-stats-popover absolute mt-2 z-50 p-3 rounded-lg border border-slate-700 bg-slate-900/95 shadow-xl backdrop-blur-sm w-72 max-w-[calc(100vw-2rem)] break-words overflow-auto max-h-[70vh]"
+          :class="openPlanetStatsAlign[planet.index] === 'right' ? 'right-0 left-auto' : 'left-0 right-auto'">
+          <div class="absolute -top-2 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-slate-700/80"
+            :class="openPlanetStatsAlign[planet.index] === 'right' ? 'right-6' : 'left-4'"></div>
+          <div class="absolute -top-[7px] w-0 h-0 border-l-7 border-r-7 border-b-7 border-l-transparent border-r-transparent border-b-slate-900/95"
+            :class="openPlanetStatsAlign[planet.index] === 'right' ? 'right-[26px]' : 'left-[18px]'"></div>
                       <div class="text-slate-400 text-xs uppercase tracking-wide mb-2">Planet Stats</div>
                       <ul class="space-y-1 text-slate-200">
                         <li class="flex justify-between"><span>Players</span><span class="font-mono">{{ getPlanetPlayerCount(planet).toLocaleString() }}</span></li>
@@ -401,7 +406,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { HellDivers2ApiService } from '@/services/helldivers2Api'
 import { majorOrderInterpreter, type MajorOrderInterpretation } from '@/services/majorOrderInterpreter'
 import type { DashboardData, Planet, Dispatch } from '@/types/helldivers2'
@@ -483,8 +488,32 @@ const getPlanetPlayerTooltip = (planet: Planet): string => {
 
 // UI toggle state for per-planet stats panel
 const openPlanetStats = ref<Record<number, boolean>>({})
+const openPlanetStatsAlign = ref<Record<number, 'left' | 'right'>>({})
+
+const adjustStatsPopoverPosition = async (index: number) => {
+  await nextTick()
+  const el = document.getElementById(`stats-popover-${index}`)
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const vw = window.innerWidth
+  const margin = 8 // px safety margin
+
+  // If overflowing right, prefer right alignment; if overflowing left, prefer left alignment
+  if (rect.right > vw - margin) {
+    openPlanetStatsAlign.value[index] = 'right'
+  } else if (rect.left < margin) {
+    openPlanetStatsAlign.value[index] = 'left'
+  }
+}
+
 const togglePlanetStats = (index: number) => {
-  openPlanetStats.value[index] = !openPlanetStats.value[index]
+  const willOpen = !openPlanetStats.value[index]
+  openPlanetStats.value[index] = willOpen
+  if (willOpen) {
+    // Set a sensible default based on viewport (right on small screens, left otherwise)
+    openPlanetStatsAlign.value[index] = window.innerWidth < 640 ? 'right' : 'left'
+    adjustStatsPopoverPosition(index)
+  }
 }
 const isPlanetStatsOpen = (index: number) => !!openPlanetStats.value[index]
 
@@ -503,13 +532,23 @@ const handleDocumentKeydown = (e: KeyboardEvent) => {
     openPlanetStats.value = {}
   }
 }
+const handleResize = () => {
+  // Recompute positions for any open popovers
+  for (const key in openPlanetStats.value) {
+    const idx = Number(key)
+    if (openPlanetStats.value[idx]) adjustStatsPopoverPosition(idx)
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleDocumentKeydown)
+  window.addEventListener('resize', handleResize)
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
   document.removeEventListener('keydown', handleDocumentKeydown)
+  window.removeEventListener('resize', handleResize)
 })
 
 // Attack helpers

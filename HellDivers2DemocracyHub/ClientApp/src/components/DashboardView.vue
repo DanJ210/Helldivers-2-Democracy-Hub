@@ -646,17 +646,21 @@ const getActivePlanets = () => {
     .filter((planet: Planet) => !planet.disabled)
     .slice()
     .sort((a: Planet, b: Planet) => {
+      const aPct = getHealthPercentage(a)
+      const bPct = getHealthPercentage(b)
+      const aDamaged = aPct < 100 ? 1 : 0
+      const bDamaged = bPct < 100 ? 1 : 0
+      if (aDamaged !== bDamaged) return bDamaged - aDamaged // damaged planets first
+
       const pa = getPlanetPlayerCount(a) > 0 ? 1 : 0
       const pb = getPlanetPlayerCount(b) > 0 ? 1 : 0
-      if (pa !== pb) return pb - pa // planets with players first
+      if (pa !== pb) return pb - pa // then planets with players
 
       const ua = isUnderAttack(a) ? 1 : 0
       const ub = isUnderAttack(b) ? 1 : 0
-      if (ua !== ub) return ub - ua // among same player presence, attacked first
+      if (ua !== ub) return ub - ua // then attacked planets
 
-      const aPct = getHealthPercentage(a)
-      const bPct = getHealthPercentage(b)
-      if (aPct !== bPct) return aPct - bPct // lowest health first
+      if (aPct !== bPct) return aPct - bPct // then lowest health
 
       return a.name.localeCompare(b.name)
     })
